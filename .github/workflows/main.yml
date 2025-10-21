@@ -1,0 +1,43 @@
+name: 部署到 GitHub Pages          # workflow 名字，随意
+on:                               # 触发条件
+  push:
+    branches: [ main ]            # main 分支一有推送就触发
+  workflow_dispatch:              # 也可手动点按钮触发
+
+permissions:                      # 给 token 开权限
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest        # 官方免费虚拟机
+    steps:
+      - name: 1. 检出代码
+        uses: actions/checkout@v4  # 官方动作：把仓库拷进来
+
+      - name: 2. 安装 Node 环境
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: 3. 装依赖 + 构建
+        run: |
+          npm ci
+          npm run build              # 默认产物在 dist 目录
+
+      - name: 4. 上传构建产物
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist                # 把 dist 目录打包成 artifact
+
+  deploy:
+    needs: build                    # 等 build 完成再跑
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: 部署到 Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
